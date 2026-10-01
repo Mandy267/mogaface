@@ -1,10 +1,9 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import Link from "next/link";
+import { ButtonLink } from "@/components/ui/ButtonLink";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
-import { Button } from "@/components/ui/Button";
 import { AnalysisResults } from "@/components/facial-analysis/AnalysisResults";
 import { loadAnalysisResult, type StoredAnalysis } from "@/lib/facial-analysis/resultStore.ts";
 
@@ -29,7 +28,7 @@ export default function ResultsPage() {
   return (
     <>
       <Header />
-      <main className="flex-1">
+      <main id="main" className="flex-1">
         <div className="mx-auto max-w-5xl px-6 py-16">
           {stored === null && (
             <div className="space-y-4 text-center">
@@ -37,9 +36,7 @@ export default function ResultsPage() {
               <p className="text-sm text-muted">
                 Your results aren&apos;t stored between visits. Start a new analysis to see them here.
               </p>
-              <Link href="/analyze">
-                <Button>Start Your Analysis</Button>
-              </Link>
+              <ButtonLink href="/analyze">Start Your Analysis</ButtonLink>
             </div>
           )}
 
