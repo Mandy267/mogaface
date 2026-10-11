@@ -38,7 +38,10 @@ violate one of these, stop and raise it rather than working around it.
 
 ## Privacy
 
-- Photos are never uploaded to a server in the current pipeline — detection
-  and analysis run entirely in the browser.
+- Detection and analysis run entirely in the browser. The only exception is
+  the treatment-preview feature (`/api/after-image`), which sends the front
+  photo to the image provider after an explicit consent checkbox and never
+  stores or logs it. Preview images must always carry the simulation
+  disclaimer and must never be presented as a guaranteed result.
 - Results persist only in `sessionStorage` for the current tab; there is no
   database yet, and none should be added without an explicit consent flow.

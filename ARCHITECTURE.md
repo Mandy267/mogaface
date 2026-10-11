@@ -115,8 +115,24 @@ object, adding persistence is additive — save what `resultStore.ts` already
 produces, keyed by user and timestamp, instead of sessionStorage. No engine
 code should need to change.
 
+## Treatment preview (`/api/after-image`)
+
+```
+AssessmentReview → AfterImagePreview (consent + front photo, downscaled)
+        ↓  multipart POST
+app/api/after-image/route.ts   — validates photo + assessment, holds OPENAI_API_KEY
+        ↓
+lib/afterImage/prompt.ts       — questionnaire goals → conservative edit prompt
+        ↓
+OpenAI images/edits            → "after" image, shown beside the original
+```
+
+This is the one place a photo leaves the browser, and only after an explicit
+consent checkbox. The route does not store or log the photo. The output is
+an illustrative simulation (always labelled), never a measurement: it does
+not feed back into `FacialAnalysisResult`.
+
 ## Explicitly not built
 
-Microservices, a separate backend, Docker/Kubernetes, queues, or Redis. The
-whole pipeline runs in the user's browser on a static Next.js app — there is
-nothing here that needs a server to compute.
+Microservices, a separate backend, Docker/Kubernetes, queues, or Redis. Measurement and analysis run in the user's browser; the only server code is
+the treatment-preview route handler above.

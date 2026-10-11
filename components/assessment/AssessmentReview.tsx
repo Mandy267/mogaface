@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { StepNav } from "./StepNav";
+import { AfterImagePreview } from "./AfterImagePreview";
 import { GENDER_OPTIONS } from "./ProfileStep";
 import { GOAL_AREA_OPTIONS, GOAL_PRIORITY_OPTIONS } from "./GoalsStep";
 import { LENGTH_OPTIONS, TEXTURE_OPTIONS, DENSITY_OPTIONS, FREQUENCY_OPTIONS } from "./HairStep";
@@ -197,6 +198,12 @@ export function AssessmentReview({ assessment, sessionFiles, onBack, onStartOver
           Assessment ready for analysis.
         </p>
       )}
+
+      <AfterImagePreview
+        assessment={assessment}
+        frontFile={sessionFiles.front?.file}
+        frontPreviewUrl={sessionFiles.front?.previewUrl}
+      />
 
       <StepNav
         onBack={onBack}
