@@ -1,4 +1,4 @@
-import { sanitizeAssessment } from "@/lib/assessment/schema.ts";
+import { isConcern, type Concern } from "@/lib/afterImage/concerns.ts";
 import { AFTER_IMAGE_DISCLAIMER, AFTER_IMAGE_PROMPT_VERSION, buildAfterImagePrompt } from "@/lib/afterImage/prompt.ts";
 
 // Image edits can take a while; allow the upstream call to finish.
@@ -18,8 +18,7 @@ function fail(status: number, error: string) {
 
 /**
  * POST multipart/form-data: `photo` (front image), `mask` (PNG, transparent =
- * editable), `size`, `assessment` (JSON string), `hairRestoration` ("true" to
- * opt in), `consent` ("true"). Returns `{ image, model, promptVersion, disclaimer }`
+ * editable), `size`, `concerns` (JSON array of concern ids), `consent` ("true"). Returns `{ image, model, promptVersion, disclaimer }`
  * where `image` is a `data:image/png;base64,...` URL.
  *
  * The photo is forwarded to OpenAI and is not stored or logged here.
@@ -50,18 +49,17 @@ export async function POST(request: Request) {
   }
   const size = String(form.get("size") ?? "");
   if (!ALLOWED_SIZES.includes(size)) return fail(400, "Unsupported image size.");
-  const hairRestoration = form.get("hairRestoration") === "true";
 
-  let assessment;
+  let concerns: Concern[] = [];
   try {
-    assessment = sanitizeAssessment(JSON.parse(String(form.get("assessment") ?? "")));
+    const parsed: unknown = JSON.parse(String(form.get("concerns") ?? ""));
+    if (Array.isArray(parsed) && parsed.every(isConcern)) concerns = parsed;
   } catch {
-    assessment = null;
+    // fall through to the empty-concerns error below
   }
-  if (!assessment) return fail(400, "Invalid assessment.");
 
-  const prompt = buildAfterImagePrompt(assessment, { hairRestoration });
-  if (!prompt) return fail(422, "Choose at least one goal (skin, jawline, face or overall appearance) to preview.");
+  const prompt = buildAfterImagePrompt(concerns);
+  if (!prompt) return fail(422, "Select at least one concern to preview.");
 
   const model = process.env.OPENAI_IMAGE_MODEL || DEFAULT_MODEL;
   const body = new FormData();

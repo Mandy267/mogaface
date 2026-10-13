@@ -51,8 +51,10 @@ test("pointInPolygon and scalePolygon behave", () => {
   assert.ok(!pointInPolygon({ x: 0.95, y: 0.5 }, scalePolygon(square, 0.5)));
 });
 
-test("eyes, nose and lips are never editable", () => {
-  const regions = computeMaskRegions(buildFace());
+const ALL = ["darkCircles", "marks", "faceFullness", "doubleChin", "foreheadLines", "hairLoss"] as const;
+
+test("eyes, nose and lips are never editable, whatever is selected", () => {
+  const regions = computeMaskRegions(buildFace(), ALL);
   for (const p of [
     { x: 0.38, y: 0.4 }, // right eye
     { x: 0.62, y: 0.4 }, // left eye
@@ -63,27 +65,37 @@ test("eyes, nose and lips are never editable", () => {
   }
 });
 
-test("cheek and forehead skin are editable", () => {
-  const regions = computeMaskRegions(buildFace());
+test("nothing is editable when no concern is selected", () => {
+  const regions = computeMaskRegions(buildFace(), []);
+  assert.equal(regions.active.length, 0);
+  assert.equal(isEditable({ x: 0.33, y: 0.55 }, regions), false);
+});
+
+test("skin concerns unlock cheek and forehead skin only", () => {
+  const regions = computeMaskRegions(buildFace(), ["marks"]);
   assert.ok(isEditable({ x: 0.33, y: 0.55 }, regions)); // cheek
   assert.ok(isEditable({ x: 0.5, y: 0.25 }, regions)); // forehead
+  assert.equal(isEditable({ x: 0.5, y: 0.9 }, regions), false); // under chin
+  assert.equal(isEditable({ x: 0.5, y: 0.1 }, regions), false); // above hairline
 });
 
-test("the area under the chin is editable (submental zone) but far neck is not", () => {
-  const regions = computeMaskRegions(buildFace());
+test("double chin unlocks the area under the chin but not the far neck", () => {
+  const regions = computeMaskRegions(buildFace(), ["doubleChin"]);
   assert.ok(isEditable({ x: 0.5, y: 0.9 }, regions));
   assert.equal(isEditable({ x: 0.5, y: 1.0 }, regions), false);
+  assert.equal(isEditable({ x: 0.33, y: 0.45 }, regions), false); // cheek untouched
 });
 
-test("hair above the forehead and the background are locked by default", () => {
-  const regions = computeMaskRegions(buildFace());
-  assert.equal(isEditable({ x: 0.5, y: 0.1 }, regions), false); // above hairline
-  assert.equal(isEditable({ x: 0.05, y: 0.5 }, regions), false); // background
+test("face fullness lets the cheek outline move inward (band just outside the oval)", () => {
+  const regions = computeMaskRegions(buildFace(), ["faceFullness"]);
+  assert.ok(isEditable({ x: 0.74, y: 0.6 }, regions), "just outside the cheek edge");
+  assert.equal(isEditable({ x: 0.9, y: 0.6 }, regions), false, "background far away stays locked");
 });
 
-test("hair restoration unlocks only a band above the forehead", () => {
-  const regions = computeMaskRegions(buildFace(), { hairRestoration: true });
-  assert.ok(isEditable({ x: 0.5, y: 0.1 }, regions));
-  assert.equal(isEditable({ x: 0.5, y: 0.01 }, regions), false); // still far above
-  assert.equal(isEditable({ x: 0.38, y: 0.4 }, regions), false); // eyes stay locked
+test("hair is locked unless hair loss is selected", () => {
+  assert.equal(isEditable({ x: 0.5, y: 0.1 }, computeMaskRegions(buildFace(), ["marks", "faceFullness"])), false);
+  const withHair = computeMaskRegions(buildFace(), ["hairLoss"]);
+  assert.ok(isEditable({ x: 0.5, y: 0.1 }, withHair));
+  assert.equal(isEditable({ x: 0.1, y: 0.1 }, withHair), false); // background beside the head
+  assert.equal(isEditable({ x: 0.33, y: 0.55 }, withHair), false); // face skin untouched
 });
