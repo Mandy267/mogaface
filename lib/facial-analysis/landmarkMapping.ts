@@ -72,3 +72,26 @@ export type LandmarkName = keyof typeof LANDMARK;
 
 /** All indices this module depends on, for a cheap "did detection return enough points" check. */
 export const REQUIRED_LANDMARK_INDICES: number[] = Array.from(new Set(Object.values(LANDMARK)));
+
+/**
+ * Index rings from MediaPipe's official connection sets (FACEMESH_FACE_OVAL,
+ * FACEMESH_LIPS, FACEMESH_LEFT/RIGHT_EYE, FACEMESH_LEFT/RIGHT_EYEBROW), in
+ * contour order. Used to build image-edit masks (see lib/afterImage/).
+ */
+export const LANDMARK_RINGS = {
+  faceOval: [
+    10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150,
+    136, 172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109,
+  ],
+  lipsOuter: [61, 146, 91, 181, 84, 17, 314, 405, 321, 375, 291, 409, 270, 269, 267, 0, 37, 39, 40, 185],
+  rightEye: [33, 7, 163, 144, 145, 153, 154, 155, 133, 173, 157, 158, 159, 160, 161, 246],
+  leftEye: [263, 249, 390, 373, 374, 380, 381, 382, 362, 398, 384, 385, 386, 387, 388, 466],
+  rightEyebrow: [46, 53, 52, 65, 55, 70, 63, 105, 66, 107],
+  leftEyebrow: [276, 283, 282, 295, 285, 300, 293, 334, 296, 336],
+  /** Nasal bridge, tip, nostrils and alae — taken as a convex hull. */
+  nose: [168, 6, 197, 195, 5, 4, 1, 19, 94, 2, 98, 327, 129, 358, 49, 279, 102, 331],
+  /** Lower face-oval arc from ear to ear through the chin — the mandibular border. */
+  jawline: [234, 93, 132, 58, 172, 136, 150, 149, 176, 148, 152, 377, 400, 378, 379, 365, 397, 288, 361, 323, 454],
+  /** Upper face-oval arc across the forehead, ear to ear — the hairline side of the oval. */
+  foreheadArc: [234, 127, 162, 21, 54, 103, 67, 109, 10, 338, 297, 332, 284, 251, 389, 356, 454],
+} as const;

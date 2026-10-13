@@ -199,11 +199,7 @@ export function AssessmentReview({ assessment, sessionFiles, onBack, onStartOver
         </p>
       )}
 
-      <AfterImagePreview
-        assessment={assessment}
-        frontFile={sessionFiles.front?.file}
-        frontPreviewUrl={sessionFiles.front?.previewUrl}
-      />
+      <AfterImagePreview assessment={assessment} frontFile={sessionFiles.front?.file} />
 
       <StepNav
         onBack={onBack}

@@ -73,3 +73,45 @@ export function boundingBox(points: Point2D[]): BoundingBox {
   }
   return { minX, maxX, minY, maxY };
 }
+
+/** Convex hull (Andrew's monotone chain). Returns the hull in counter-clockwise order. */
+export function convexHull(points: Point2D[]): Point2D[] {
+  const pts = [...points].sort((a, b) => a.x - b.x || a.y - b.y);
+  if (pts.length < 3) return pts;
+  const cross = (o: Point2D, a: Point2D, b: Point2D) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+  const lower: Point2D[] = [];
+  for (const p of pts) {
+    while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) lower.pop();
+    lower.push(p);
+  }
+  const upper: Point2D[] = [];
+  for (let i = pts.length - 1; i >= 0; i--) {
+    const p = pts[i];
+    while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) upper.pop();
+    upper.push(p);
+  }
+  lower.pop();
+  upper.pop();
+  return lower.concat(upper);
+}
+
+/** Scales a polygon about its vertex centroid. factor > 1 grows it, < 1 shrinks it. */
+export function scalePolygon(polygon: Point2D[], factor: number): Point2D[] {
+  if (polygon.length === 0) return [];
+  const cx = polygon.reduce((s, p) => s + p.x, 0) / polygon.length;
+  const cy = polygon.reduce((s, p) => s + p.y, 0) / polygon.length;
+  return polygon.map((p) => ({ x: cx + (p.x - cx) * factor, y: cy + (p.y - cy) * factor }));
+}
+
+/** Even-odd point-in-polygon test. */
+export function pointInPolygon(point: Point2D, polygon: Point2D[]): boolean {
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const a = polygon[i];
+    const b = polygon[j];
+    if (a.y > point.y !== b.y > point.y && point.x < ((b.x - a.x) * (point.y - a.y)) / (b.y - a.y) + a.x) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}

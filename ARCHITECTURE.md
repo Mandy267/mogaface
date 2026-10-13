@@ -118,19 +118,25 @@ code should need to change.
 ## Treatment preview (`/api/after-image`)
 
 ```
-AssessmentReview → AfterImagePreview (consent + front photo, downscaled)
-        ↓  multipart POST
-app/api/after-image/route.ts   — validates photo + assessment, holds OPENAI_API_KEY
+AssessmentReview → AfterImagePreview (consent, optional hair toggle)
+  photo cover-cropped to 1024x1024 / 1536x1024 / 1024x1536
         ↓
-lib/afterImage/prompt.ts       — questionnaire goals → conservative edit prompt
+faceLandmarker.ts → 478 landmarks → lib/afterImage/maskRegions.ts
+  editable = skin inside face oval + submental band, MINUS eyes/brows/nose/lips
+  (hair, scalp, ears, background never editable unless hair restoration is toggled)
+        ↓  multipart POST: photo + API mask + size + answers
+app/api/after-image/route.ts → lib/afterImage/prompt.ts → OpenAI images/edits
         ↓
-OpenAI images/edits            → "after" image, shown beside the original
+maskCanvas.ts compositeLocked: generated pixels are kept ONLY inside the feathered
+editable mask; everything else is copied from the original photo
 ```
 
-This is the one place a photo leaves the browser, and only after an explicit
-consent checkbox. The route does not store or log the photo. The output is
-an illustrative simulation (always labelled), never a measurement: it does
-not feed back into `FacialAnalysisResult`.
+The identity lock comes from the final composite, not the prompt: locked
+regions are the source pixels, so the model cannot move them. This is the
+one place a photo leaves the browser, only after an explicit consent
+checkbox, and the route does not store or log it. The output is an
+illustrative simulation (always labelled) and never feeds back into
+`FacialAnalysisResult`.
 
 ## Explicitly not built
 

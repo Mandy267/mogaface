@@ -8,14 +8,18 @@ const OPENAI_EDITS_URL = "https://api.openai.com/v1/images/edits";
 const DEFAULT_MODEL = "gpt-image-1";
 const MAX_PHOTO_BYTES = 10 * 1024 * 1024;
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+// Output sizes the image-edit endpoint supports; the client resizes the photo
+// and mask to exactly this size so the masked composite lines up pixel for pixel.
+const ALLOWED_SIZES = ["1024x1024", "1536x1024", "1024x1536"];
 
 function fail(status: number, error: string) {
   return Response.json({ error }, { status });
 }
 
 /**
- * POST multipart/form-data: `photo` (front image), `assessment` (JSON string),
- * `consent` ("true"). Returns `{ image, model, promptVersion, disclaimer }`
+ * POST multipart/form-data: `photo` (front image), `mask` (PNG, transparent =
+ * editable), `size`, `assessment` (JSON string), `hairRestoration` ("true" to
+ * opt in), `consent` ("true"). Returns `{ image, model, promptVersion, disclaimer }`
  * where `image` is a `data:image/png;base64,...` URL.
  *
  * The photo is forwarded to OpenAI and is not stored or logged here.
@@ -40,6 +44,14 @@ export async function POST(request: Request) {
   if (!ACCEPTED_TYPES.includes(photo.type)) return fail(400, "Unsupported photo type. Use JPG, PNG, or WebP.");
   if (photo.size === 0 || photo.size > MAX_PHOTO_BYTES) return fail(400, "Photo must be under 10MB.");
 
+  const mask = form.get("mask");
+  if (!(mask instanceof File) || mask.type !== "image/png" || mask.size === 0 || mask.size > MAX_PHOTO_BYTES) {
+    return fail(400, "A valid edit mask is required.");
+  }
+  const size = String(form.get("size") ?? "");
+  if (!ALLOWED_SIZES.includes(size)) return fail(400, "Unsupported image size.");
+  const hairRestoration = form.get("hairRestoration") === "true";
+
   let assessment;
   try {
     assessment = sanitizeAssessment(JSON.parse(String(form.get("assessment") ?? "")));
@@ -48,15 +60,16 @@ export async function POST(request: Request) {
   }
   if (!assessment) return fail(400, "Invalid assessment.");
 
-  const prompt = buildAfterImagePrompt(assessment);
-  if (!prompt) return fail(422, "Choose at least one goal (skin, hair, facial hair, jawline or face) to preview.");
+  const prompt = buildAfterImagePrompt(assessment, { hairRestoration });
+  if (!prompt) return fail(422, "Choose at least one goal (skin, jawline, face or overall appearance) to preview.");
 
   const model = process.env.OPENAI_IMAGE_MODEL || DEFAULT_MODEL;
   const body = new FormData();
   body.set("model", model);
   body.set("prompt", prompt);
   body.set("image", photo, photo.name || "photo");
-  body.set("size", "auto");
+  body.set("mask", mask, "mask.png");
+  body.set("size", size);
   body.set("quality", "medium");
   body.set("input_fidelity", "high");
   body.set("n", "1");
